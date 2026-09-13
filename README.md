@@ -25,12 +25,6 @@ This repository contains the client-side application used to browse and manage c
 
 ---
 
-## Demo
-
-Add screenshots or a hosted demo link here (e.g., Netlify/Vercel/GitHub Pages) once available.
-
----
-
 ## Features
 
 - Single Page Application built with React
