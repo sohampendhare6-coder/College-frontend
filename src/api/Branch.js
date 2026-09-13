@@ -1,110 +1,82 @@
-import { async } from "@firebase/util";
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  setDoc,
-} from "firebase/firestore";
-import { firestore } from "../firebase";
 import http from "../http-common";
 
+// ─── Branch CRUD ─────────────────────────────────────────────────────────────
+
 export const getBranch = async () => {
-  const data = [];
-  const branchData = await http.get("/getBranch");
-  branchData.data.branches.map((branch) => {
-    return data.push(branch);
-  });
-  // const querySnapshot = await getDocs(collection(firestore, "branch"));
-  // querySnapshot.forEach((document) => {
-  //   data.push({ ...document.data(), firebaseId: document.id });
-  // });
-  return data;
+  const res = await http.get("/getBranch");
+  // backend returns a plain array now
+  return Array.isArray(res.data) ? res.data : [];
+};
+
+export const getBranchById = async (id) => {
+  const res = await http.get(`/getBranch/${id}`);
+  return res.data;
 };
 
 export const createBranch = async (values) => {
-  return await http.post("/addBranch", values);
-  // try {
-  //   await addDoc(collection(firestore, "branch"), values);
-  // } catch (err) {
-  //   console.log({ err });
-  // }
+  const res = await http.post("/addBranch", values);
+  return res.data; // { insertedId }
 };
 
 export const updateBranch = async (values) => {
-  try {
-    await setDoc(doc(firestore, "branch", values.firebaseId), values);
-  } catch (err) {
-    console.log({ err });
-  }
+  const res = await http.put("/editBranch", values);
+  return res.data;
 };
 
-export const deletebranchData = async (values) => {
-  console.log(values);
-  // try {
-  //   await http.delete("/deleteBranch");
-  // } catch (err) {
-  //   console.log({ err });
-  // }
+export const deleteBranch = async (id) => {
+  const res = await http.delete(`/deleteBranch?id=${id}`);
+  return res.data;
 };
+
+// ─── Dropdown helpers (used by Attendance / Allocation) ──────────────────────
 
 export const getbranchName = async () => {
-  const data = [];
   try {
-    const branchName = await http.get("/branch");
-    branchName.data.branchName.map((branch) =>{
-      return data.push(branch);
-    })
+    const res = await http.get("/branch");
+    return Array.isArray(res.data) ? res.data : [];
   } catch (error) {
-    console.log(error);
+    console.error(error);
+    return [];
   }
-  return data;
-}
+};
 
 export const getSem = async (branch) => {
-  const data = [];
   try {
-    const semesters = await http.get(`/semester/${branch}`)
-    semesters.data.sem.map((semster) => {
-      return data.push(semster)
-    })
+    const res = await http.get(`/semester/${branch}`);
+    return Array.isArray(res.data) ? res.data : [];
   } catch (error) {
-    console.log(error);
+    console.error(error);
+    return [];
   }
-  return data;
-}
+};
 
-export const getSubject = async (branch,semester) => {
-  const data = [];
+export const getSubject = async (branch, semester) => {
   try {
-    const subjects = await http.get(`/subject/${branch}/${semester}`)
-    subjects.data.subject.map((subject) => {
-      return data.push(subject);
-    })
+    const res = await http.get(`/subject/${branch}/${semester}`);
+    return Array.isArray(res.data) ? res.data : [];
   } catch (error) {
-    console.log(error);
+    console.error(error);
+    return [];
   }
-  return data;
-}
+};
 
 export const getId = async (fName) => {
   try {
-    const id = await http.post(`/id/${fName}`);
-    console.log(id.data);
-    return id.data;  
+    const res = await http.get(`/id/${fName}`);
+    return res.data;
   } catch (error) {
-      console.error(error);   
+    console.error(error);
   }
-}
+};
 
-export const getNonAllocatedSubjects = async (facultyId,branch,sem,subject) => {
-  const data = []
+export const getNonAllocatedSubjects = async (facultyId, branch, sem, subject) => {
   try {
-    const subjects = await http.get(`/getNonAllocatedSubjects/${facultyId}/${branch}/${sem}/${subject}`)
-    subjects.data.map((subject) => {return data.push(subject)})
+    const res = await http.get(
+      `/getNonAllocatedSubjects/${facultyId}/${branch}/${sem}/${subject}`
+    );
+    return Array.isArray(res.data) ? res.data : [];
   } catch (error) {
-    console.error(error);   
+    console.error(error);
+    return [];
   }
-  return data
-}
+};

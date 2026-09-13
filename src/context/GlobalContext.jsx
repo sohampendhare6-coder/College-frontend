@@ -20,9 +20,7 @@ export const GlobalContextProvider = ({ children }) => {
     return users.reduce((acc, item) => {
       return {
         ...acc,
-        [item.email]: item.firstName
-          ? `${item.firstName}${item.lastName ? ` ${item.lastName}` : ""}`
-          : item.email,
+        [item.email]: item.email,
       };
     }, {});
   }, [users]);

@@ -1,19 +1,31 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 /** @jsxImportSource @emotion/react */
-import { LogoutOutlined } from "@mui/icons-material";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import MenuIcon from "@mui/icons-material/Menu";
-import SupervisedUserCircleIcon from "@mui/icons-material/SupervisedUserCircle";
+import { LogoutOutlined }         from "@mui/icons-material";
+import AdminPanelSettingsIcon     from "@mui/icons-material/AdminPanelSettings";
+import AccountBalanceIcon         from "@mui/icons-material/AccountBalance";
+import AssessmentIcon             from "@mui/icons-material/Assessment";
+import AssignmentIndIcon          from "@mui/icons-material/AssignmentInd";
+import AutoStoriesIcon            from "@mui/icons-material/AutoStories";
+import BadgeIcon                  from "@mui/icons-material/Badge";
+import CalendarMonthIcon          from "@mui/icons-material/CalendarMonth";
+import ChevronLeftIcon            from "@mui/icons-material/ChevronLeft";
+import DashboardIcon              from "@mui/icons-material/Dashboard";
+import EmojiPeopleIcon            from "@mui/icons-material/EmojiPeople";
+import MenuIcon                   from "@mui/icons-material/Menu";
+import PersonIcon                 from "@mui/icons-material/Person";
+import QueryStatsIcon             from "@mui/icons-material/QueryStats";
+import SchoolIcon                 from "@mui/icons-material/School";
+import SupervisedUserCircleIcon   from "@mui/icons-material/SupervisedUserCircle";
 import newLogo from "../assets/images/newLogo.png";
-import EmojiPeopleIcon from "@mui/icons-material/EmojiPeople";
-import DomainIcon from "@mui/icons-material/Domain";
-import AutoStoriesIcon from "@mui/icons-material/AutoStories";
-import SchoolIcon from "@mui/icons-material/School";
-import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
-import QueryStatsIcon from "@mui/icons-material/QueryStats";
-import AssessmentIcon from "@mui/icons-material/Assessment";
 import {
   Box,
+  Button,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Divider,
   IconButton,
   List,
@@ -21,11 +33,13 @@ import {
   ListItemIcon,
   ListItemText,
   Toolbar,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import MuiAppBar from "@mui/material/AppBar";
 import MuiDrawer from "@mui/material/Drawer";
 import { styled } from "@mui/material/styles";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { drawerWidth } from "../../src/constants/styleConstants";
 import { useAuthContext, useLayoutContext } from "../context";
@@ -82,8 +96,8 @@ const AdminDRAWER_ITEMS = [
   },
   {
     route: "/branch",
-    literal: "Branch",
-    Icon: DomainIcon,
+    literal: "Branches",
+    Icon: AccountBalanceIcon,
   },
   {
     route: "/student",
@@ -104,7 +118,7 @@ const AdminDRAWER_ITEMS = [
 
   {
     route: "/graph",
-    literal: "Graph",
+    literal: "Analytics",
     Icon: QueryStatsIcon,
   },
 
@@ -117,20 +131,99 @@ const AdminDRAWER_ITEMS = [
 
 const FacultyDrawer_Item = [
   {
-    route: "/Attendance",
-    literal: "AttendenceCollection",
+    route: "/attendance",
+    literal: "Mark Attendance",
     Icon: AutoStoriesIcon,
+  },
+  {
+    route: "/branch",
+    literal: "Branches",
+    Icon: AccountBalanceIcon,
+  },
+  {
+    route: "/student",
+    literal: "Student Details",
+    Icon: SchoolIcon,
+  },
+  {
+    route: "/report",
+    literal: "Report",
+    Icon: AssessmentIcon,
+  },
+  {
+    route: "/graph",
+    literal: "Analytics",
+    Icon: QueryStatsIcon,
   },
 ];
 
+const StudentDrawer_Item = [
+  {
+    route:   "/student/dashboard",
+    literal: "Dashboard",
+    Icon:    DashboardIcon,
+  },
+  {
+    route:   "/student/attendance",
+    literal: "My Attendance",
+    Icon:    AutoStoriesIcon,
+  },
+  {
+    route:   "/student/timetable",
+    literal: "Timetable",
+    Icon:    CalendarMonthIcon,
+  },
+  {
+    route:   "/student/profile",
+    literal: "My Profile",
+    Icon:    PersonIcon,
+  },
+];
+
+// ── Role chip displayed in the AppBar ─────────────────────────────────────────
+const ROLE_CHIP = {
+  admin: {
+    label: "Admin",
+    icon: <AdminPanelSettingsIcon sx={{ fontSize: 16 }} />,
+    sx: { bgcolor: "#7B1FA2", color: "#fff", "& .MuiChip-icon": { color: "#fff" } },
+  },
+  faculty: {
+    label: "Faculty",
+    icon: <BadgeIcon sx={{ fontSize: 16 }} />,
+    sx: { bgcolor: "#1565C0", color: "#fff", "& .MuiChip-icon": { color: "#fff" } },
+  },
+  student: {
+    label: "Student",
+    icon: <SchoolIcon sx={{ fontSize: 16 }} />,
+    sx: { bgcolor: "#2E7D32", color: "#fff", "& .MuiChip-icon": { color: "#fff" } },
+  },
+};
+
+const RoleChip = ({ role }) => {
+  const key = (role || "admin").toLowerCase();
+  const cfg = ROLE_CHIP[key] || ROLE_CHIP.admin;
+  return (
+    <Chip
+      icon={cfg.icon}
+      label={cfg.label}
+      size="small"
+      sx={{ fontWeight: 700, mr: 2, ...cfg.sx }}
+    />
+  );
+};
+
 const Header = () => {
   const { isDrawerOpened, toggleDrawer } = useLayoutContext();
-  const { user } = useAuthContext();
+  const { user, logout } = useAuthContext();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const { logout } = useAuthContext();
   const DRAWER_ITEMS =
-    user === "faculty" ? FacultyDrawer_Item : AdminDRAWER_ITEMS;
-  // const [open, setOpen] = useState(false);
+    user === "faculty"
+      ? FacultyDrawer_Item
+      : user === "student"
+      ? StudentDrawer_Item
+      : AdminDRAWER_ITEMS;
+
   const mainListItems = (
     <>
       {DRAWER_ITEMS.map(({ route, literal, Icon }) => (
@@ -155,14 +248,23 @@ const Header = () => {
     </>
   );
 
+  const handleLogoutClick = () => {
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmLogout = () => {
+    setConfirmOpen(false);
+    logout();
+  };
+
+  const handleCancelLogout = () => {
+    setConfirmOpen(false);
+  };
+
   return (
     <Box>
       <AppBar open={isDrawerOpened}>
-        <Toolbar
-          sx={{
-            pr: "24px", // keep right padding when drawer closed
-          }}
-        >
+        <Toolbar sx={{ pr: "24px" }}>
           <IconButton
             edge="start"
             color="inherit"
@@ -194,19 +296,63 @@ const Header = () => {
               </a>
               <b>Collage Attendence Systems </b>
             </IconButton>
-            {/* Home */}
           </Typography>
-          <Typography component="h1" variant="h6" color="inherit" noWrap>
-            {user?.displayName || "-"} ( {user|| "-"} )
-          </Typography>
-          {/* <div css={{ position: "relative" }}>
-            <Notifications open={open} setOpen={setOpen} />
-          </div> */}
-          <IconButton sx={{ ml: 1 }} onClick={logout} color="inherit">
-            <LogoutOutlined />
-          </IconButton>
+
+          {/* Logged-in role badge */}
+          <RoleChip role={user} />
+
+          {/* Logout button */}
+          <Tooltip title="Logout">
+            <Button
+              color="inherit"
+              variant="outlined"
+              startIcon={<LogoutOutlined />}
+              onClick={handleLogoutClick}
+              aria-label="logout"
+              sx={{
+                borderColor: "rgba(255,255,255,0.6)",
+                textTransform: "none",
+                fontWeight: 600,
+                "&:hover": {
+                  borderColor: "#fff",
+                  backgroundColor: "rgba(255,255,255,0.12)",
+                },
+              }}
+            >
+              Logout
+            </Button>
+          </Tooltip>
         </Toolbar>
       </AppBar>
+
+      {/* Confirmation dialog */}
+      <Dialog
+        open={confirmOpen}
+        onClose={handleCancelLogout}
+        aria-labelledby="logout-dialog-title"
+        aria-describedby="logout-dialog-description"
+      >
+        <DialogTitle id="logout-dialog-title">Confirm Logout</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="logout-dialog-description">
+            Are you sure you want to log out?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelLogout} color="inherit">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmLogout}
+            color="error"
+            variant="contained"
+            autoFocus
+          >
+            Logout
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Drawer
         variant="permanent"
         sx={{ position: "fixed" }}

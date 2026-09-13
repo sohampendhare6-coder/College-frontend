@@ -18,7 +18,7 @@ const StudentCollection = () => {
   const [currentRow, setCurrentRow] = useState();
 
   const initialValues = {
-    _id : "",
+    _id: "",
     fname: "",
     mname: "",
     sname: "",
@@ -28,6 +28,8 @@ const StudentCollection = () => {
     sem: "",
     pcontact: "",
     scontact: "",
+    email: "",
+    password: "",
   };
 
   const loadData = (data) => {

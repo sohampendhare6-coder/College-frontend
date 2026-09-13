@@ -10,15 +10,13 @@ import { firestore } from "../firebase";
 import http from "../http-common";
 
 export const getFaculty = async () => {
-  try{
-    const data = [];
-    const facultyData = await http.get("/getFaculty");
-    facultyData.data.faculty.map((faculty) => {
-      return data.push(faculty);
-    });
-    return data;
-  } catch(err){
-    console.log({err});
+  try {
+    const res = await http.get("/getFaculty");
+    // backend returns a plain array
+    return Array.isArray(res.data) ? res.data : [];
+  } catch (err) {
+    console.log({ err });
+    return [];
   }
 };
 

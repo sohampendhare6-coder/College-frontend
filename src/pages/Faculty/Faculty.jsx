@@ -37,17 +37,11 @@ const FacultyCollection = () => {
     }
   }
 
-  const reloadNewData  = (faculty,id) => {
-    setFacultyCollection((prev) => prev.concat(faculty));
-
-    fetchTasks({
-      url : "/addUser",
-      method : "post",
-      data : {"facultyId":id,"email":faculty.email,"password":faculty.password,"role":"faculty"}
-    },(id)=>{if (id){
-      return
-    }else {toast.error(error)}})
-  }
+  const reloadNewData = (faculty, id) => {
+    // Backend now handles Registration entry inside /addFaculty — no second call needed
+    setFacultyCollection((prev) => prev.concat({ ...faculty, _id: id }));
+    toast.success("Faculty added successfully");
+  };
 
   useEffect(() => {
     fetchTasks({url:'/getFaculty',method:'get'},loadData);

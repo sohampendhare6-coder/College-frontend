@@ -2,50 +2,41 @@ import http from "../http-common";
 import { useCallback, useState } from "react";
 
 const useHttp = () => {
-    const [error, setError] = useState(null);
+  const [error, setError] = useState(null);
 
-    const sendRequest = useCallback( async (requestConfig,applyData) => {
-        if (requestConfig.method === 'get'){
-            try {
-                const responseData = await http.get(requestConfig.url);
-                if (!responseData.statusText){
-                    throw new Error('Request failed')
-                }
-                applyData(responseData.data);
-            }
-            catch(err){
-                setError(err.message || "Somthing went wrong")
-            }
-        }else if (requestConfig.method === 'post'){
-            try {
-                const responesData = await http.post(requestConfig.url,requestConfig.data)
-                applyData(responesData.data)
-                if (!responesData.statusText){
-                    throw new Error('Request failed')    
-                }
-            }catch(err){
-                setError(err.message || "Somthing went wrong")
-            }
-        }else if (requestConfig.method === 'delete'){
-            try {
-                 const responseData = await http.delete(`${requestConfig.url}?id=${requestConfig.id}`)
-                 applyData(responseData.data)
-            }catch(err){
-                setError(err.message || "Somthing went wrong")
-            }
-        }else if (requestConfig.method === "put"){
-            try {
-                const responseData = await http.put(requestConfig.url,requestConfig.data)
-                applyData(responseData.data);
-            }catch(err){
-                setError(err.message || "Somthing went wrong")
-            }
-        } 
-    },[])  
+  const sendRequest = useCallback(async (requestConfig, applyData) => {
+    setError(null);
+    try {
+      let responseData;
 
-    return {
-        error,
-        sendRequest
+      if (requestConfig.method === "get") {
+        responseData = await http.get(requestConfig.url);
+      } else if (requestConfig.method === "post") {
+        responseData = await http.post(requestConfig.url, requestConfig.data);
+      } else if (requestConfig.method === "put") {
+        responseData = await http.put(requestConfig.url, requestConfig.data);
+      } else if (requestConfig.method === "delete") {
+        responseData = await http.delete(
+          `${requestConfig.url}?id=${requestConfig.id}`
+        );
+      }
+
+      if (responseData) {
+        applyData(responseData.data);
+      }
+    } catch (err) {
+      // Surface the real server error message when available
+      const message =
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err.message ||
+        "Something went wrong";
+      setError(message);
+      console.error("useHttp error:", message, err?.response?.status);
     }
-}
-export default useHttp
+  }, []);
+
+  return { error, sendRequest };
+};
+
+export default useHttp;

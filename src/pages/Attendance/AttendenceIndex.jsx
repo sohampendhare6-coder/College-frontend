@@ -73,13 +73,58 @@ const AttendenceCollection = () => {
   }
 
   useEffect(() => {
-    sendTaskRequest({url:`/getFacultyBranch/${id}`,method:"get"},(branch) => {setBranchCollection(branch)});
-  }, [sendTaskRequest,id]);
+    // If faculty has an ID, try fetching their allocated branches first.
+    // Otherwise fallback directly to all branches so the dropdown is never empty.
+    if (id && id !== "undefined" && id !== "null") {
+      sendTaskRequest(
+        { url: `/getFacultyBranch/${id}`, method: "get" },
+        (branch) => {
+          if (Array.isArray(branch) && branch.length > 0) {
+            setBranchCollection(branch);
+          } else {
+            sendTaskRequest(
+              { url: "/branch", method: "get" },
+              (allBranches) => {
+                const list = Array.isArray(allBranches) && allBranches.length > 0
+                  ? allBranches
+                  : [
+                      "Computer Science and Engineering",
+                      "Information Technology",
+                      "Electronics and Communication Engineering",
+                      "Mechanical Engineering",
+                      "Civil Engineering"
+                    ];
+                setBranchCollection(list);
+              }
+            );
+          }
+        }
+      );
+    } else {
+      // No faculty ID (e.g. admin) -> fetch all branches
+      sendTaskRequest(
+        { url: "/branch", method: "get" },
+        (allBranches) => {
+          const list = Array.isArray(allBranches) && allBranches.length > 0
+            ? allBranches
+            : [
+                "Computer Science and Engineering",
+                "Information Technology",
+                "Electronics and Communication Engineering",
+                "Mechanical Engineering",
+                "Civil Engineering"
+              ];
+          setBranchCollection(list);
+        }
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const onSubmit = () => {
     formikRef.current.submitForm().then((values) =>{
       setCurrentRow(values);
-      sendTaskRequest({url:`/getAttendance/${values.branch}/${values.semester}/${values.subject}/${values.date}/${values.lectureNo}`,method:"get"},(students) => setStudents(students));
+      sendTaskRequest({url:`/getAttendance/${encodeURIComponent(values.branch)}/${encodeURIComponent(values.semester)}/${encodeURIComponent(values.subject)}/${values.date}/${values.lectureNo}`,method:"get"},(students) => setStudents(students));
     })
   }
 
@@ -153,14 +198,41 @@ const AttendenceCollection = () => {
                 fullWidth
                 name="branch"
                 value={formik.values.branch}
+                displayEmpty
                 onChange={(e) => {
-                  formik.setFieldValue('branch',e.target.value);
-                  sendTaskRequest({url:`/getFacultySem/${e.target.value}`, method:"get"},(semester)=>{setSemCollection(semester)});
+                  const chosenBranch = e.target.value;
+                  formik.setFieldValue('branch', chosenBranch);
+                  // Reset downstream selections when branch changes
+                  formik.setFieldValue('semester', '');
+                  formik.setFieldValue('subject', '');
+                  setSemCollection([]);
+                  setSubjectCollection([]);
+                  sendTaskRequest({ url: `/getFacultySem/${encodeURIComponent(chosenBranch)}`, method: "get" }, (semester) => {
+                    if (Array.isArray(semester) && semester.length > 0) {
+                      setSemCollection(semester);
+                    } else {
+                      // Fallback: try /semester/:branchName
+                      sendTaskRequest({ url: `/semester/${encodeURIComponent(chosenBranch)}`, method: "get" }, (sems) => {
+                        if (Array.isArray(sems) && sems.length > 0) {
+                          setSemCollection(sems);
+                        } else {
+                          setSemCollection([1, 2, 3, 4, 5, 6, 7, 8]);
+                        }
+                      });
+                    }
+                  });
                 }}
               >
-                {branchCollection.map((d) => {
-                  return <MenuItem value={d}>{d}</MenuItem>;
-                })}
+                {branchCollection.length === 0 ? (
+                  <MenuItem value="" disabled>
+                    <em>No branches available</em>
+                  </MenuItem>
+                ) : (
+                  branchCollection.map((d, index) => {
+                    const val = typeof d === "object" && d !== null ? (d.branchname || d.name || String(index)) : d;
+                    return <MenuItem key={`${val}-${index}`} value={val}>{val}</MenuItem>;
+                  })
+                )}
               </Select>
             </Grid>
             <Grid item md={2.4}>
@@ -170,15 +242,37 @@ const AttendenceCollection = () => {
                 type="text"
                 fullWidth
                 name="semester"
+                displayEmpty
                 value={formik.values.semester}
                 onChange={(e) => {
-                  formik.setFieldValue('semester',e.target.value)
-                  sendTaskRequest({url:`/getFacultySubject/${e.target.value}`,method:"get"},(subject) => {setSubjectCollection(subject)})
+                  const chosenSem = e.target.value;
+                  formik.setFieldValue('semester', chosenSem);
+                  // Reset subject when semester changes
+                  formik.setFieldValue('subject', '');
+                  setSubjectCollection([]);
+                  sendTaskRequest({ url: `/getFacultySubject/${encodeURIComponent(chosenSem)}`, method: "get" }, (subject) => {
+                    const subjects = Array.isArray(subject) ? subject : [];
+                    if (subjects.length > 0) {
+                      setSubjectCollection(subjects);
+                    } else {
+                      // Fallback: try /subject/:branch/:semester
+                      sendTaskRequest({ url: `/subject/${encodeURIComponent(formik.values.branch)}/${encodeURIComponent(chosenSem)}`, method: "get" }, (fallbackSubs) => {
+                        setSubjectCollection(Array.isArray(fallbackSubs) ? fallbackSubs : []);
+                      });
+                    }
+                  });
                 }}
               >
-                {semCollection?.map((d, i) => {
-                  return <MenuItem value={d}>{d}</MenuItem>;
-                })}
+                {semCollection.length === 0 ? (
+                  <MenuItem value="" disabled>
+                    <em>{formik.values.branch ? "Loading semesters..." : "Select branch first"}</em>
+                  </MenuItem>
+                ) : (
+                  semCollection.map((d, i) => {
+                    const val = typeof d === "object" && d !== null ? (d.sem ?? String(i)) : d;
+                    return <MenuItem key={`${val}-${i}`} value={val}>{val}</MenuItem>;
+                  })
+                )}
               </Select>
             </Grid>
             <Grid item md={2.4}>
@@ -188,14 +282,24 @@ const AttendenceCollection = () => {
                 type="text"
                 fullWidth
                 name="subject"
+                displayEmpty
                 value={formik.values.subject}
-                onChange={(e) => { 
-                  formik.setFieldValue('subject',e.target.value)
+                onChange={(e) => {
+                  formik.setFieldValue('subject', e.target.value);
                 }}
               >
-                {subjectCollection?.map((d) => {
-                  return <MenuItem value={d}>{d}</MenuItem>;
-                })}
+                {subjectCollection.length === 0 ? (
+                  <MenuItem value="" disabled>
+                    <em>{formik.values.semester ? "No subjects available" : "Select semester first"}</em>
+                  </MenuItem>
+                ) : (
+                  subjectCollection.map((d, index) => {
+                    const val = typeof d === "object" && d !== null ? (d.subject || d.name || String(index)) : d;
+                    return (
+                      <MenuItem key={`${val}-${index}`} value={val}>{val}</MenuItem>
+                    );
+                  })
+                )}
               </Select>
             </Grid>
             <Grid item md={2.4} textAlign="left">

@@ -1,7 +1,10 @@
 import AddIcon from "@mui/icons-material/Add";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
+import SchoolIcon from "@mui/icons-material/School";
+import BadgeIcon from "@mui/icons-material/Badge";
 import Button from "@mui/material/Button";
 import { useState } from "react";
-import { Box } from "@mui/material";
+import { Box, Chip } from "@mui/material";
 import { css } from "@emotion/react";
 import { deleteUserData, getUsers } from "../../api/users";
 import EditIcon from "@mui/icons-material/Edit";
@@ -15,13 +18,52 @@ import useProgress from "../../hooks/useProgress";
 import ConfirmDialog from "../../common/ConFirmDialog";
 import CreateUserForm from "./dialog";
 
+// ── Role badge config ─────────────────────────────────────────────────────────
+const ROLE_CONFIG = {
+  admin: {
+    label: "Admin",
+    color: "#7B1FA2",       // purple
+    bgcolor: "#F3E5F5",
+    icon: <AdminPanelSettingsIcon sx={{ fontSize: 14 }} />,
+  },
+  faculty: {
+    label: "Faculty",
+    color: "#1565C0",       // blue
+    bgcolor: "#E3F2FD",
+    icon: <BadgeIcon sx={{ fontSize: 14 }} />,
+  },
+  student: {
+    label: "Student",
+    color: "#2E7D32",       // green
+    bgcolor: "#E8F5E9",
+    icon: <SchoolIcon sx={{ fontSize: 14 }} />,
+  },
+};
+
+const RoleBadge = ({ role }) => {
+  // Normalise to lowercase; fall back to "admin" when missing
+  const key = (role || "admin").toLowerCase();
+  const cfg = ROLE_CONFIG[key] || ROLE_CONFIG.admin;
+  return (
+    <Chip
+      icon={cfg.icon}
+      label={cfg.label}
+      size="small"
+      sx={{
+        bgcolor: cfg.bgcolor,
+        color: cfg.color,
+        fontWeight: 700,
+        border: `1px solid ${cfg.color}30`,
+        "& .MuiChip-icon": { color: cfg.color },
+      }}
+    />
+  );
+};
+
 const initialValues = {
-  contact: "",
-  firstName: "",
-  lastName: "",
   email: "",
   firebaseId: "",
-  role: "agent",
+  role: "admin",
 };
 
 const Users = () => {
@@ -53,11 +95,9 @@ const Users = () => {
   const handleEditClick = (row) => (event) => {
     event.stopPropagation();
     setCurrentRow({
-      firstName: row.firstName ? row.firstName : initialValues.firstName,
-      lastName: row.lastName ? row.lastName : initialValues.lastName,
-      contact: row.contact ? row.contact : initialValues.contact,
-      email: row.email ? row.email : initialValues.email,
-      role: row.role ? row.role : initialValues.role,
+      email: row.email || initialValues.email,
+      // normalise role; fall back to "admin" when missing
+      role: (row.role || initialValues.role).toLowerCase(),
       firebaseId: row.firebaseId,
     });
     setOpen(true);
@@ -91,34 +131,13 @@ const Users = () => {
   };
 
   const columns = [
-    { field: "id", headerName: "ID", width: 80 },
-    {
-      field: "email",
-      headerName: "Email",
-      width: 250,
-    },
-    {
-      field: "firstName",
-      headerName: "First name",
-      width: 150,
-    },
-    {
-      field: "lastName",
-      headerName: "Last name",
-      width: 150,
-    },
-    {
-      field: "contact",
-      headerName: "Contact No",
-      headerAlign: "left",
-      type: "number",
-      width: 150,
-      align: "left",
-    },
+    { field: "id", headerName: "ID", width: 70 },
+    { field: "email", headerName: "Email", width: 300, flex: 1 },
     {
       field: "role",
       headerName: "Role",
-      width: 130,
+      width: 140,
+      renderCell: ({ row }) => <RoleBadge role={row.role} />,
     },
     {
       field: "delete",

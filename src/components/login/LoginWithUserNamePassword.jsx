@@ -7,49 +7,78 @@ import { loginButtonWidth } from "./loginStyles";
 import useHttp from "../../hooks/useHttp";
 import AuthContext from "../../context/AuthContext";
 import { useContext } from "react";
+import { useNavigate } from "react-router-dom";
+
+/** Maps a role string to its default landing route */
+const ROLE_HOME = {
+  admin:   "/users",
+  faculty: "/attendance",
+  student: "/student/dashboard",
+};
 
 const LoginWithUserNamePassword = () => {
-  const authctx = useContext(AuthContext);
-
+  const authctx  = useContext(AuthContext);
+  const navigate = useNavigate();
   const { sendRequest } = useHttp();
-  const initialValues = {
-    email: "",
-    password: "",
-  };
+
+  const initialValues = { email: "", password: "" };
+
   const validationSchema = Yup.object({
-    email: Yup.string().email().required("Required"),
+    email:    Yup.string().email("Invalid email").required("Required"),
     password: Yup.string().required("Required"),
   });
 
   const onSubmit = (values, { resetForm }) => {
-
-    if (values) {
-      sendRequest({
-        url : "/checkEmail",
-        method : "post",
-        data : values
-      },(data) => {if (data.length > 0)  
-                    {
-                      authctx.userHandler(data[0].role)
-                      authctx.onLogin()
-                      authctx.idHandler(data[0].facultyId)
-                    } else {
-                      toast.error("user not exist")}
-                      resetForm();
-                  })
-      // setTimeout(() => {console.log(authctx.user)},5000);
-      // console.log(authctx.user);
-      // LoginWithEmailAndPassword(values)
-      //   .then(() => {
-      //     resetForm();
-      //   })
-      //   .catch((err) => {
-      //     toast.error(err.message);
-      //   });
-    } else {
+    if (!values) {
       toast.error("Something went wrong");
+      return;
     }
+
+    sendRequest(
+      { url: "/checkEmail", method: "post", data: values },
+      (data) => {
+        // data is either an array with one user, or false (not found)
+        const user = Array.isArray(data) && data.length > 0 ? data[0] : null;
+
+        if (user) {
+          const { role, facultyId, studentId } = user;
+          const normalisedRole = (role || "admin").toLowerCase();
+
+          // Extract the hex string from the ObjectId regardless of how
+          // MongoDB serialised it — could be a plain string, an ObjectId
+          // object, or { $oid: "..." } (extended JSON format)
+          const extractId = (val) => {
+            if (!val) return "";
+            if (typeof val === "string") return val;
+            // BSON ObjectId object has a toString() that returns the hex
+            if (typeof val.toString === "function") {
+              const s = val.toString();
+              // Reject "[object Object]" — means toString didn't work
+              if (s && !s.includes("[object")) return s;
+            }
+            // Extended JSON: { $oid: "hexstring" }
+            if (val.$oid) return val.$oid;
+            return "";
+          };
+
+          const userId = extractId(facultyId) || extractId(studentId) || "";
+
+          // 1. Persist role + id (AuthContext writes to sessionStorage)
+          authctx.userHandler(normalisedRole);
+          authctx.idHandler(userId);
+          authctx.onLogin();
+
+          // 2. Redirect to role-appropriate home page
+          const destination = ROLE_HOME[normalisedRole] || "/users";
+          navigate(destination, { replace: true });
+        } else {
+          toast.error("Email or password is incorrect");
+        }
+        resetForm();
+      }
+    );
   };
+
   return (
     <>
       <Formik
@@ -60,11 +89,12 @@ const LoginWithUserNamePassword = () => {
         {(formik) => (
           <Form>
             <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
-              Collage Attendence Systems
+              College Attendance System
             </Typography>
             <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
               Login
             </Typography>
+
             <FormikController
               control="input"
               type="text"
@@ -76,8 +106,8 @@ const LoginWithUserNamePassword = () => {
               error={formik.touched.email && Boolean(formik.errors.email)}
               helperText={formik.touched.email && formik.errors.email}
             />
-            <br />
-            <br />
+            <br /><br />
+
             <FormikController
               control="input"
               type="password"
@@ -89,8 +119,8 @@ const LoginWithUserNamePassword = () => {
               error={formik.touched.password && Boolean(formik.errors.password)}
               helperText={formik.touched.password && formik.errors.password}
             />
-            <br />
-            <br />
+            <br /><br />
+
             <Button sx={loginButtonWidth} variant="contained" type="submit">
               Login
             </Button>

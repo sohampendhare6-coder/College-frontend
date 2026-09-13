@@ -13,12 +13,10 @@ const CreateUserForm = ({ handleClose, currentRow }) => {
   const [createNewUser, createLoading] = useProgress(createUser);
   const [updateExistingUser, updateLoading] = useProgress(updateUser);
   const formikRef = useRef();
+
   const validationSchema = Yup.object({
-    contact: Yup.string().required("Required"),
-    firstName: Yup.string().required("Required"),
-    lastName: Yup.string().required("Required"),
-    email: Yup.string().required("Required"),
-    role: Yup.string().required("Required"),
+    email: Yup.string().email("Invalid email").required("Email is required"),
+    role: Yup.string().required("Role is required"),
   });
 
   const onOk = () => {
@@ -41,7 +39,7 @@ const CreateUserForm = ({ handleClose, currentRow }) => {
 
   return (
     <Modal
-      title={currentRow.firebaseId ? "Update Data" : "Create Data"}
+      title={currentRow.firebaseId ? "Update User" : "Add User"}
       onOk={onOk}
       onCancel={handleClose}
       sx={{ minHeight: (createLoading || updateLoading) && "200px" }}
@@ -50,8 +48,8 @@ const CreateUserForm = ({ handleClose, currentRow }) => {
         <Loading
           title={
             currentRow.firebaseId
-              ? "Please wait updating your details..."
-              : "Please wait creating your details..."
+              ? "Updating user..."
+              : "Creating user..."
           }
           top="65%"
         />
@@ -65,70 +63,37 @@ const CreateUserForm = ({ handleClose, currentRow }) => {
           >
             {(formik) => (
               <Form>
+                {/* Email */}
                 <Grid item xs={12}>
                   <FormikController
                     control="input"
-                    type="text"
-                    label="FirstName"
-                    name="firstName"
-                    fullWidth
-                    value={formik.values.firstName}
-                    onChange={formik.handleChange}
-                    error={
-                      formik.touched.firstName &&
-                      Boolean(formik.errors.firstName)
-                    }
-                    helperText={
-                      formik.touched.firstName && formik.errors.firstName
-                    }
-                  />
-                </Grid>
-
-                <Grid item xs={12} paddingTop="1rem">
-                  <FormikController
-                    control="input"
-                    type="text"
-                    label="lastName"
-                    name="lastName"
-                    fullWidth
-                    value={formik.values.lastName}
-                    onChange={formik.handleChange}
-                    error={
-                      formik.touched.lastName && Boolean(formik.errors.lastName)
-                    }
-                    helperText={
-                      formik.touched.lastName && formik.errors.lastName
-                    }
-                  />
-                </Grid>
-
-                <Grid item xs={12} paddingTop="1rem">
-                  <FormikController
-                    control="input"
-                    type="text"
-                    label="contact"
-                    name="contact"
-                    fullWidth
-                    value={formik.values.contact}
-                    onChange={formik.handleChange}
-                    error={
-                      formik.touched.contact && Boolean(formik.errors.contact)
-                    }
-                    helperText={formik.touched.contact && formik.errors.contact}
-                  />
-                </Grid>
-
-                <Grid item xs={12} paddingTop="1rem">
-                  <FormikController
-                    control="input"
-                    type="text"
-                    label="email"
+                    type="email"
+                    label="Email"
                     name="email"
                     fullWidth
                     value={formik.values.email}
                     onChange={formik.handleChange}
                     error={formik.touched.email && Boolean(formik.errors.email)}
                     helperText={formik.touched.email && formik.errors.email}
+                  />
+                </Grid>
+
+                {/* Role */}
+                <Grid item xs={12} paddingTop="1rem">
+                  <FormikController
+                    control="select"
+                    label="Role"
+                    name="role"
+                    options={[
+                      { label: "Admin", value: "admin" },
+                      { label: "Faculty", value: "faculty" },
+                      { label: "Student", value: "student" },
+                    ]}
+                    fullWidth
+                    value={formik.values.role}
+                    onChange={formik.handleChange}
+                    error={formik.touched.role && Boolean(formik.errors.role)}
+                    helperText={formik.touched.role && formik.errors.role}
                   />
                 </Grid>
               </Form>
@@ -139,4 +104,5 @@ const CreateUserForm = ({ handleClose, currentRow }) => {
     </Modal>
   );
 };
+
 export default CreateUserForm;
