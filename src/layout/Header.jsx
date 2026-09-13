@@ -16,7 +16,7 @@ import PersonIcon                 from "@mui/icons-material/Person";
 import QueryStatsIcon             from "@mui/icons-material/QueryStats";
 import SchoolIcon                 from "@mui/icons-material/School";
 import SupervisedUserCircleIcon   from "@mui/icons-material/SupervisedUserCircle";
-import newLogo from "../assets/images/newLogo.png";
+import AttendanceLogo             from "../assets/images/attendanceLogo.jpg";
 import {
   Box,
   Button,
@@ -278,25 +278,38 @@ const Header = () => {
             <MenuIcon />
           </IconButton>
 
-          <Typography
-            component="h1"
-            variant="h6"
-            color="inherit"
-            noWrap
-            sx={{ flexGrow: 1 }}
+          <Box
+            sx={{
+              flexGrow: 1,
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+            }}
           >
-            <IconButton>
-              <a href="#" target="_blank" rel="noreferrer">
-                <img
-                  alt="sales-manager-icon"
-                  src={newLogo}
-                  width="50"
-                  height="50"
-                />
-              </a>
-              <b>Collage Attendence Systems </b>
-            </IconButton>
-          </Typography>
+            <Box
+              component="img"
+              alt="College Attendance Logo"
+              src={AttendanceLogo}
+              sx={{
+                width: 38,
+                height: 38,
+                borderRadius: "10px",
+                objectFit: "cover",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+              }}
+            />
+            <Typography
+              variant="subtitle1"
+              sx={{
+                fontWeight: 800,
+                color: "#ffffff",
+                letterSpacing: "-0.01em",
+                display: { xs: "none", sm: "block" },
+              }}
+            >
+              College Attendance Systems
+            </Typography>
+          </Box>
 
           {/* Logged-in role badge */}
           <RoleChip role={user} />
